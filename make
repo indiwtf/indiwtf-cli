@@ -1,2 +1,2 @@
 #!/bin/bash
-go build -o indiwtf main.go
+CGO_ENABLED=0 go build -o indiwtf main.go
