@@ -1,10 +1,11 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"net"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -21,28 +22,49 @@ func (f *stringSliceFlag) Set(value string) error {
 	return nil
 }
 
-// resolveDNS resolves the IP address for a given hostname using the specified DNS server.
-func resolveDNS(hostname, dnsServer string) (string, error) {
-	resolver := &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			dialer := &net.Dialer{}
-			return dialer.DialContext(ctx, "udp", dnsServer)
+type DomainStatus struct {
+	Domain string `json:"domain"`
+	Status string `json:"status"`
+	IP     string `json:"ip"`
+}
+
+// checkDomain sends an HTTP GET request to the API endpoint and returns the status and IP of the domain.
+func checkDomain(domain string) (*DomainStatus, error) {
+	apiURL := fmt.Sprintf("https://indiwtf.upset.dev/api/check?domain=%s", url.QueryEscape(domain))
+
+	// Create an HTTP client with a custom User-Agent string
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 		},
 	}
 
-	// Use LookupIPAddr to perform DNS resolution and get IP addresses associated with the hostname.
-	ips, err := resolver.LookupIPAddr(context.Background(), hostname)
+	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if len(ips) == 0 {
-		return "", fmt.Errorf("no IP addresses found for %s", hostname)
+	// Set a custom User-Agent string
+	req.Header.Set("User-Agent", "indiwtf-cli/1.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	// Return the first IP address as a string representation.
-	return ips[0].IP.String(), nil
+	var domainStatus DomainStatus
+	err = json.Unmarshal(body, &domainStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domainStatus, nil
 }
 
 func main() {
@@ -73,9 +95,6 @@ func main() {
 		return
 	}
 
-	// Currently we are using the Telkom DNS directly, if we want to cache queries locally we will need to proxy it in the future.
-	dnsServer := "118.98.44.10:53"
-
 	// Iterate over the domain names and perform the necessary checks.
 	for _, rawURL := range domains {
 		parsedURL, err := url.Parse(rawURL)
@@ -94,17 +113,12 @@ func main() {
 			}
 		}
 
-		ipAddress, err := resolveDNS(parsedURL.Hostname(), dnsServer)
+		domainStatus, err := checkDomain(parsedURL.Hostname())
 		if err != nil {
-			fmt.Printf("Error resolving IP address for %s: %v\n", rawURL, err)
+			fmt.Printf("Error checking domain %s: %v\n", parsedURL.Hostname(), err)
 			continue
 		}
 
-		status := "Not Blocked"
-		if ipAddress == "36.86.63.185" {
-			status = "Blocked"
-		}
-
-		fmt.Printf("Domain: %s | Status: %s\n", parsedURL.Hostname(), status)
+		fmt.Printf("Domain: %s | Status: %s | IP: %s\n", domainStatus.Domain, domainStatus.Status, domainStatus.IP)
 	}
 }
