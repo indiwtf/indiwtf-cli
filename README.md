@@ -1,8 +1,32 @@
-# Indiwtf CLI - Blocked Website Checker for Indonesia
+# Indiwtf CLI
+
+Will your website be blocked by Kominfo? Let's check!
 
 Indiwtf CLI is a tiny command-line tool written in Go that allows you to check if your website is blocked in Indonesia. It performs DNS resolution using a specified DNS server in Indonesia and checks the accessibility status of the website based on the resolved IP address.
 
-For web version you can visit at [indiwtf.upset.dev](https://indiwtf.upset.dev).
+You can access the web version by visiting [indiwtf.upset.dev](https://indiwtf.upset.dev). Indiwtf is also available in a [Telegram Bot](https://github.com/fransallen/indiwtf-telegram-bot) version.
+
+## Usage
+
+Run the `indiwtf` executable with the desired options:
+
+```
+./indiwtf [domain1] [domain2] ...
+```
+
+## Examples
+
+Check the accessibility status of a single website:
+
+```
+./indiwtf example.com
+```
+
+Check the accessibility status of multiple websites:
+
+```
+./indiwtf puredns.org github.com reddit.com
+```
 
 ## Features
 
@@ -33,40 +57,6 @@ cd indiwtf-cli
 ```
 ./make
 ```
-
-## Usage
-
-Run the `indiwtf` executable with the desired options:
-
-```
-./indiwtf [flags] [domain1] [domain2] ...
-```
-
-## Flags
-
-- **-d**: Specify a domain name to check. You can provide multiple domain names by repeating the flag.
-
-## Examples
-
-Check the accessibility status of a single website:
-
-```
-./indiwtf example.com
-```
-
-Check the accessibility status of multiple websites:
-
-```
-./indiwtf -d puredns.org -d github.com -d reddit.com
-```
-
-## Customization
-
-You can customize the default DNS server by modifying the `dnsServer` variable in the code. By default, it uses the Telkom DNS.
-
-## Limitations
-
-Please note that Indiwtf specifically focuses on checking website accessibility in Indonesia. The results may not accurately represent the accessibility status of websites in other regions.
 
 ## License
 
