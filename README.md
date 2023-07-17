@@ -8,24 +8,42 @@ You can access the web version by visiting [indiwtf.upset.dev](https://indiwtf.u
 
 ## Usage
 
-Run the `indiwtf` executable with the desired options:
+Run `indiwtf` with one or more domains:
 
-```
-./indiwtf [domain1] [domain2] ...
+```sh
+indiwtf [domain1] [domain2] ...
 ```
 
 ## Examples
 
 Check the accessibility status of a single website:
 
-```
-./indiwtf example.com
+```sh
+indiwtf example.com
 ```
 
 Check the accessibility status of multiple websites:
 
+```sh
+indiwtf puredns.org github.com reddit.com
 ```
-./indiwtf puredns.org github.com reddit.com
+
+## Installation
+
+Indiwtf CLI available as prebuilt binary, you can download and placed it under `/usr/local/bin` folder, run:
+
+```sh
+sudo wget -O /usr/local/bin/indiwtf \
+  https://github.com/fransallen/indiwtf-cli/raw/main/indiwtf
+sudo chmod +x /usr/local/bin/indiwtf
+```
+
+## Uninstall
+
+Simply remove the `indiwtf` binary, run:
+
+```sh
+sudo rm /usr/local/bin/indiwtf
 ```
 
 ## Features
@@ -34,28 +52,21 @@ Check the accessibility status of multiple websites:
 - Resolve IP address for a given hostname using a custom DNS server in Indonesia.
 - Supports checking multiple websites in a single run.
 
-## Prerequisites
+## Development
 
-Go (version 1.16 or above).
+You will need Go (version 1.16 or above).
 
-## Installation
+Clone the repository:
 
-1. Clone the repository:
-
-```
+```sh
 git clone https://github.com/fransallen/indiwtf-cli.git
-```
-
-2. Change to the project directory:
-
-```
 cd indiwtf-cli
 ```
 
-3. Build the executable:
+To build the binary, run:
 
-```
-./make
+```sh
+CGO_ENABLED=0 go build -o indiwtf main.go
 ```
 
 ## License
