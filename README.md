@@ -30,7 +30,7 @@ indiwtf puredns.org github.com reddit.com
 
 ## Installation
 
-Indiwtf CLI available as prebuilt binary, you can download and placed it under `/usr/local/bin` folder, run:
+Indiwtf CLI available as prebuilt binary, you can download and place it under `/usr/local/bin` folder, run:
 
 ```sh
 sudo wget -O /usr/local/bin/indiwtf \
