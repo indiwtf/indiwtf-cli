@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -53,13 +52,8 @@ func checkDomain(domain string) (*DomainStatus, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	var domainStatus DomainStatus
-	err = json.Unmarshal(body, &domainStatus)
+	err = json.NewDecoder(resp.Body).Decode(&domainStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -68,26 +62,16 @@ func checkDomain(domain string) (*DomainStatus, error) {
 }
 
 func main() {
-	var domainFlags stringSliceFlag
-
-	// Customize usage message to provide instructions for running the program.
+	// Instructions for running the program.
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [flags] [domain1] [domain2] ...\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [domain1] [domain2] ...\n", os.Args[0])
 		flag.PrintDefaults()
 	}
-
-	// Define a custom flag for specifying domain names.
-	flag.Var(&domainFlags, "d", "Domain names")
 
 	// Parse command-line flags.
 	flag.Parse()
 
 	domains := flag.Args()
-
-	// If domain names are provided using the -d flag, add them to the list of domains.
-	if len(domainFlags) > 0 {
-		domains = append(domains, domainFlags...)
-	}
 
 	// If no domain names are provided, show the usage and exit.
 	if len(domains) == 0 {
