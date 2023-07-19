@@ -2,7 +2,7 @@
 
 Will your website be blocked by Kominfo? Let's check!
 
-Indiwtf CLI is a tiny command-line tool written in Go that allows you to check if your website is blocked in Indonesia. It performs DNS resolution using a specified DNS server in Indonesia and checks the accessibility status of the website based on the resolved IP address.
+Indiwtf CLI is a tiny command-line tool written in Go that allows you to check if your website is blocked in Indonesia. It uses the [Indiwtf API](https://indiwtf.upset.dev/api) to check the accessibility status of the website in Indonesian Internet network.
 
 You can access the web version by visiting [indiwtf.upset.dev](https://indiwtf.upset.dev). Indiwtf is also available in a [Telegram Bot](https://github.com/fransallen/indiwtf-telegram-bot) version.
 
