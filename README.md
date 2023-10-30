@@ -28,6 +28,12 @@ Check the accessibility status of multiple websites:
 indiwtf puredns.org github.com reddit.com
 ```
 
+## API Token
+
+Indiwtf CLI requires an API token to check website accessibility. You can store the API token securely in a configuration file located at `~/.indiwtf/config.json`. The program will prompt you to enter the token if it's not found in the configuration file.
+
+To obtain an API token, please visit [indiwtf.com/pricing](https://indiwtf.com/pricing).
+
 ## Installation
 
 Indiwtf CLI available as prebuilt binary, you can download and place it under `/usr/local/bin` folder, run:
@@ -40,10 +46,18 @@ sudo chmod +x /usr/local/bin/indiwtf
 
 ## Uninstall
 
-Simply remove the `indiwtf` binary, run:
+To remove Indiwtf CLI and its configuration files, follow these steps:
+
+1. Remove the **indiwtf** binary:
 
 ```sh
 sudo rm /usr/local/bin/indiwtf
+```
+
+Remove the configuration directory and file:
+
+```sh
+rm -rf ~/.indiwtf
 ```
 
 ## Features

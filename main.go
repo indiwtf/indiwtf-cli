@@ -27,9 +27,86 @@ type DomainStatus struct {
 	IP     string `json:"ip"`
 }
 
-// checkDomain sends an HTTP GET request to the API endpoint and returns the status and IP of the domain.
+type Config struct {
+	Token string `json:"token"`
+}
+
+var token string
+var configFilePath string
+
+func init() {
+	// Define the path to the configuration file in the user's home directory
+	configFilePath = getHomeDir() + "/.indiwtf/config.json"
+
+	// Load the API token from the configuration file, if available.
+	config := loadConfig()
+	token = config.Token
+}
+
+// getHomeDir returns the user's home directory
+func getHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println("Error getting user's home directory:", err)
+		os.Exit(1)
+	}
+	return home
+}
+
+// loadConfig loads the API token from a configuration file.
+func loadConfig() Config {
+	config := Config{}
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		// If the file doesn't exist, return an empty configuration.
+		return config
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&config)
+	if err != nil {
+		// If there is an error decoding the file, return an empty configuration.
+		return config
+	}
+
+	return config
+}
+
+// saveConfig saves the API token to a configuration file.
+func saveConfig(config Config) error {
+	// Ensure the directory exists
+	configDir := getHomeDir() + "/.indiwtf"
+	err := os.MkdirAll(configDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(configFilePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	return encoder.Encode(config)
+}
+
+// checkDomain sends an HTTP GET request to the API endpoint with the token and returns the status and IP of the domain.
 func checkDomain(domain string) (*DomainStatus, error) {
-	apiURL := fmt.Sprintf("https://indiwtf.upset.dev/api/check?domain=%s", url.QueryEscape(domain))
+	if token == "" {
+		fmt.Println("API token is required. Please enter your API token (https://indiwtf.com/pricing):")
+		fmt.Scanln(&token)
+		config := Config{
+			Token: token,
+		}
+		err := saveConfig(config)
+		if err != nil {
+			fmt.Printf("Error saving the API token to the configuration file: %v\n", err)
+		}
+	}
+
+	apiURL := fmt.Sprintf("https://indiwtf.com/api/check?domain=%s&token=%s", url.QueryEscape(domain), token)
 
 	// Create an HTTP client with a custom User-Agent string
 	client := &http.Client{
