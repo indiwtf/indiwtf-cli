@@ -4,11 +4,32 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+// version is the current release of the CLI. It is overridden at build
+// time via -ldflags "-X main.version=<tag>".
+var version = "dev"
+
+// repoSlug is the GitHub owner/repo used for updates.
+const repoSlug = "indiwtf/indiwtf-cli"
+
+// domainRegex matches a valid fully-qualified domain name.
+var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
+
+// isValidDomain reports whether the given hostname is a syntactically valid domain.
+func isValidDomain(domain string) bool {
+	if len(domain) == 0 || len(domain) > 253 {
+		return false
+	}
+	return domainRegex.MatchString(domain)
+}
 
 type stringSliceFlag []string
 
@@ -92,6 +113,155 @@ func saveConfig(config Config) error {
 	return encoder.Encode(config)
 }
 
+// uninstall removes the indiwtf binary and the configuration directory.
+func uninstall() {
+	// Remove the configuration directory (~/.indiwtf).
+	configDir := getHomeDir() + "/.indiwtf"
+	if err := os.RemoveAll(configDir); err != nil {
+		fmt.Printf("Error removing configuration directory %s: %v\n", configDir, err)
+	} else {
+		fmt.Printf("Removed configuration directory: %s\n", configDir)
+	}
+
+	// Resolve the path to the running binary and remove it.
+	binPath, err := os.Executable()
+	if err != nil {
+		fmt.Printf("Error locating the indiwtf binary: %v\n", err)
+		return
+	}
+
+	if err := os.Remove(binPath); err != nil {
+		if os.IsPermission(err) {
+			fmt.Printf("Permission denied removing %s.\n", binPath)
+			fmt.Printf("Try again with elevated privileges: sudo rm %s\n", binPath)
+		} else {
+			fmt.Printf("Error removing the indiwtf binary %s: %v\n", binPath, err)
+		}
+		return
+	}
+
+	fmt.Printf("Removed binary: %s\n", binPath)
+	fmt.Println("Indiwtf CLI has been uninstalled.")
+}
+
+// githubRelease holds the fields we need from the GitHub releases API.
+type githubRelease struct {
+	TagName string `json:"tag_name"`
+}
+
+// latestVersion queries the GitHub API for the latest released tag.
+func latestVersion() (string, error) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repoSlug)
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "indiwtf-cli/"+version)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected response from GitHub: %s", resp.Status)
+	}
+
+	var release githubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", err
+	}
+	if release.TagName == "" {
+		return "", fmt.Errorf("no released version found")
+	}
+	return release.TagName, nil
+}
+
+// update downloads the latest released binary and replaces the running one.
+func update() {
+	fmt.Println("Checking for the latest version...")
+	tag, err := latestVersion()
+	if err != nil {
+		fmt.Printf("Error checking for updates: %v\n", err)
+		return
+	}
+
+	if tag == version {
+		fmt.Printf("You are already on the latest version (%s).\n", version)
+		return
+	}
+
+	fmt.Printf("Updating from %s to %s...\n", version, tag)
+
+	binPath, err := os.Executable()
+	if err != nil {
+		fmt.Printf("Error locating the indiwtf binary: %v\n", err)
+		return
+	}
+	// Resolve symlinks so we replace the real binary, not a link to it.
+	if resolved, err := filepath.EvalSymlinks(binPath); err == nil {
+		binPath = resolved
+	}
+
+	downloadURL := fmt.Sprintf("https://github.com/%s/releases/download/%s/indiwtf", repoSlug, tag)
+	req, err := http.NewRequest("GET", downloadURL, nil)
+	if err != nil {
+		fmt.Printf("Error creating download request: %v\n", err)
+		return
+	}
+	req.Header.Set("User-Agent", "indiwtf-cli/"+version)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Printf("Error downloading the update: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error downloading the update: unexpected response %s\n", resp.Status)
+		return
+	}
+
+	// Write to a temporary file in the same directory for an atomic replace.
+	tmpFile, err := os.CreateTemp(filepath.Dir(binPath), ".indiwtf-update-*")
+	if err != nil {
+		fmt.Printf("Error creating temporary file: %v\n", err)
+		if os.IsPermission(err) {
+			fmt.Printf("Try again with elevated privileges: sudo %s update\n", binPath)
+		}
+		return
+	}
+	tmpPath := tmpFile.Name()
+
+	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpPath)
+		fmt.Printf("Error saving the update: %v\n", err)
+		return
+	}
+	tmpFile.Close()
+
+	if err := os.Chmod(tmpPath, 0755); err != nil {
+		os.Remove(tmpPath)
+		fmt.Printf("Error setting permissions: %v\n", err)
+		return
+	}
+
+	if err := os.Rename(tmpPath, binPath); err != nil {
+		os.Remove(tmpPath)
+		fmt.Printf("Error replacing the binary %s: %v\n", binPath, err)
+		if os.IsPermission(err) {
+			fmt.Printf("Try again with elevated privileges: sudo %s update\n", binPath)
+		}
+		return
+	}
+
+	fmt.Printf("Updated to %s.\n", tag)
+}
+
 // checkDomain sends an HTTP GET request to the API endpoint with the token and returns the status and IP of the domain.
 func checkDomain(domain string) (*DomainStatus, error) {
 	if token == "" {
@@ -121,7 +291,7 @@ func checkDomain(domain string) (*DomainStatus, error) {
 	}
 
 	// Set a custom User-Agent string
-	req.Header.Set("User-Agent", "indiwtf-cli/1.0")
+	req.Header.Set("User-Agent", "indiwtf-cli/"+version)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -141,23 +311,39 @@ func checkDomain(domain string) (*DomainStatus, error) {
 func main() {
 	// Instructions for running the program.
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [domain1] [domain2] ...\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [domain1] [domain2] ...\n\n", os.Args[0])
+		fmt.Fprintln(os.Stderr, "Check if one or more domains are blocked in Indonesia.")
+		fmt.Fprintln(os.Stderr, "\nCommands:")
+		fmt.Fprintln(os.Stderr, "  update       Update indiwtf to the latest version")
+		fmt.Fprintln(os.Stderr, "  uninstall    Remove the indiwtf binary and configuration files")
+		fmt.Fprintln(os.Stderr, "\nOptions:")
+		fmt.Fprintln(os.Stderr, "  -h, --help   Show this help message and exit")
 		flag.PrintDefaults()
 	}
 
 	// Parse command-line flags.
 	flag.Parse()
 
-	domains := flag.Args()
+	args := flag.Args()
 
-	// If no domain names are provided, show the usage and exit.
-	if len(domains) == 0 {
+	// If no arguments are provided, show the usage and exit.
+	if len(args) == 0 {
 		flag.Usage()
 		return
 	}
 
+	// Handle subcommands.
+	switch args[0] {
+	case "update":
+		update()
+		return
+	case "uninstall":
+		uninstall()
+		return
+	}
+
 	// Iterate over the domain names and perform the necessary checks.
-	for _, rawURL := range domains {
+	for _, rawURL := range args {
 		parsedURL, err := url.Parse(rawURL)
 		if err != nil {
 			fmt.Printf("Error parsing URL: %v\n", err)
@@ -174,9 +360,17 @@ func main() {
 			}
 		}
 
-		domainStatus, err := checkDomain(parsedURL.Hostname())
+		hostname := parsedURL.Hostname()
+
+		// Skip inputs that are not valid domain names.
+		if !isValidDomain(hostname) {
+			fmt.Printf("Invalid domain: %s\n", rawURL)
+			continue
+		}
+
+		domainStatus, err := checkDomain(hostname)
 		if err != nil {
-			fmt.Printf("Error checking domain %s: %v\n", parsedURL.Hostname(), err)
+			fmt.Printf("Error checking domain %s: %v\n", hostname, err)
 			continue
 		}
 

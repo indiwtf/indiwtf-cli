@@ -9,12 +9,38 @@ set -e
 
 REPO="indiwtf/indiwtf-cli"
 BINARY="indiwtf"
-BINARY_URL="https://github.com/${REPO}/raw/main/${BINARY}"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 INSTALL_PATH="${INSTALL_DIR}/${BINARY}"
 
 info() { printf '\033[1;34m==>\033[0m %s\n' "$1"; }
 err()  { printf '\033[1;31mError:\033[0m %s\n' "$1" >&2; exit 1; }
+
+# Pick an available downloader.
+if command -v curl >/dev/null 2>&1; then
+  HAS_CURL=1
+elif command -v wget >/dev/null 2>&1; then
+  HAS_CURL=0
+else
+  err "Neither curl nor wget is installed. Please install one and try again."
+fi
+
+# fetch <url> downloads to stdout.
+fetch() {
+  if [ "$HAS_CURL" = "1" ]; then
+    curl -fsSL "$1"
+  else
+    wget -qO- "$1"
+  fi
+}
+
+# download <url> <dest> saves to a file (via sudo when needed).
+download() {
+  if [ "$HAS_CURL" = "1" ]; then
+    $SUDO curl -fSL -o "$2" "$1"
+  else
+    $SUDO wget -O "$2" "$1"
+  fi
+}
 
 # Use sudo only when we cannot write to the install directory ourselves.
 SUDO=""
@@ -26,17 +52,25 @@ if [ ! -w "$INSTALL_DIR" ]; then
   fi
 fi
 
-# Pick an available downloader.
-if command -v curl >/dev/null 2>&1; then
-  DOWNLOAD="curl -fSL -o"
-elif command -v wget >/dev/null 2>&1; then
-  DOWNLOAD="wget -O"
-else
-  err "Neither curl nor wget is installed. Please install one and try again."
+# Resolve the version to install. Honor an explicit VERSION override,
+# otherwise query GitHub for the latest release tag.
+VERSION="${VERSION:-}"
+if [ -z "$VERSION" ]; then
+  info "Resolving the latest release"
+  VERSION=$(fetch "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep '"tag_name"' \
+    | head -n 1 \
+    | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
 fi
 
-info "Downloading ${BINARY} to ${INSTALL_PATH}"
-$SUDO $DOWNLOAD "$INSTALL_PATH" "$BINARY_URL"
+if [ -z "$VERSION" ]; then
+  err "Could not determine the latest release. Set VERSION=<tag> and try again."
+fi
+
+BINARY_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY}"
+
+info "Downloading ${BINARY} ${VERSION} to ${INSTALL_PATH}"
+download "$BINARY_URL" "$INSTALL_PATH"
 
 info "Making ${BINARY} executable"
 $SUDO chmod +x "$INSTALL_PATH"

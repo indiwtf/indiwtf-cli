@@ -1,0 +1,56 @@
+name: Release
+
+# Build and publish the indiwtf binary whenever a version tag is pushed.
+# Tags are plain version numbers, e.g. 1.0.0
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Build binaries
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -eu
+          mkdir -p dist
+          # platform:output_name
+          targets="
+          linux/amd64:indiwtf
+          linux/arm64:indiwtf-linux-arm64
+          darwin/amd64:indiwtf-darwin-amd64
+          darwin/arm64:indiwtf-darwin-arm64
+          "
+          for target in $targets; do
+            os="${target%%/*}"
+            rest="${target#*/}"
+            arch="${rest%%:*}"
+            name="${rest#*:}"
+            echo "Building $name ($os/$arch)"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
+              go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
+              -o "dist/${name}" main.go
+          done
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            dist/*
