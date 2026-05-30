@@ -36,13 +36,34 @@ To obtain an API token, please visit [indiwtf.com/pricing](https://indiwtf.com/p
 
 ## Installation
 
-Indiwtf CLI available as prebuilt binary, you can download and place it under `/usr/local/bin` folder, run:
+Install the latest prebuilt binary with a single command:
+
+```sh
+curl -fsSL https://github.com/indiwtf/indiwtf-cli/raw/main/install.sh | sh
+```
+
+Or using `wget`:
+
+```sh
+wget -qO- https://github.com/indiwtf/indiwtf-cli/raw/main/install.sh | sh
+```
+
+The script downloads the `indiwtf` binary to `/usr/local/bin` and makes it executable. To install somewhere else, set `INSTALL_DIR`:
+
+```sh
+INSTALL_DIR="$HOME/.local/bin" sh -c "$(curl -fsSL https://github.com/indiwtf/indiwtf-cli/raw/main/install.sh)"
+```
+
+<details>
+<summary>Manual installation</summary>
 
 ```sh
 sudo wget -O /usr/local/bin/indiwtf \
-  https://github.com/fransallen/indiwtf-cli/raw/main/indiwtf
+  https://github.com/indiwtf/indiwtf-cli/raw/main/indiwtf
 sudo chmod +x /usr/local/bin/indiwtf
 ```
+
+</details>
 
 ## Uninstall
 
@@ -86,10 +107,6 @@ CGO_ENABLED=0 go build -o indiwtf main.go
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-This project was inspired by the need to quickly check if websites are blocked in Indonesia.
 
 ## Contributing
 
