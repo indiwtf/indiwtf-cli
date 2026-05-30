@@ -113,6 +113,23 @@ func saveConfig(config Config) error {
 	return encoder.Encode(config)
 }
 
+// auth stores the given API token in the configuration file.
+func auth(apiToken string) {
+	apiToken = strings.TrimSpace(apiToken)
+	if apiToken == "" {
+		fmt.Println("Usage: indiwtf auth API_TOKEN")
+		fmt.Println("Get an API token at https://indiwtf.com/pricing")
+		return
+	}
+
+	if err := saveConfig(Config{Token: apiToken}); err != nil {
+		fmt.Printf("Error saving the API token to the configuration file: %v\n", err)
+		return
+	}
+
+	fmt.Printf("API token saved to %s\n", configFilePath)
+}
+
 // uninstall removes the indiwtf binary and the configuration directory.
 func uninstall() {
 	// Remove the configuration directory (~/.indiwtf).
@@ -314,6 +331,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [domain1] [domain2] ...\n\n", os.Args[0])
 		fmt.Fprintln(os.Stderr, "Check if one or more domains are blocked in Indonesia.")
 		fmt.Fprintln(os.Stderr, "\nCommands:")
+		fmt.Fprintln(os.Stderr, "  auth TOKEN   Save your API token to the configuration file")
 		fmt.Fprintln(os.Stderr, "  update       Update indiwtf to the latest version")
 		fmt.Fprintln(os.Stderr, "  uninstall    Remove the indiwtf binary and configuration files")
 		fmt.Fprintln(os.Stderr, "\nOptions:")
@@ -334,6 +352,9 @@ func main() {
 
 	// Handle subcommands.
 	switch args[0] {
+	case "auth":
+		auth(strings.Join(args[1:], " "))
+		return
 	case "update":
 		update()
 		return

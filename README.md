@@ -30,7 +30,15 @@ indiwtf puredns.org github.com reddit.com
 
 ## API Token
 
-Indiwtf CLI requires an API token to check website accessibility. You can store the API token securely in a configuration file located at `~/.indiwtf/config.json`. The program will prompt you to enter the token if it's not found in the configuration file.
+Indiwtf CLI requires an API token to check website accessibility. You can store the API token securely in a configuration file located at `~/.indiwtf/config.json`.
+
+Save your token with the `auth` command:
+
+```sh
+indiwtf auth API_TOKEN
+```
+
+Alternatively, the program will prompt you to enter the token the first time you run a check if it's not found in the configuration file.
 
 To obtain an API token, please visit [indiwtf.com/pricing](https://indiwtf.com/pricing).
 
@@ -69,21 +77,31 @@ For other platforms, replace the asset name (e.g. `indiwtf-darwin-arm64`, `indiw
 
 </details>
 
+## Update
+
+Update to the latest release at any time:
+
+```sh
+indiwtf update
+```
+
 ## Uninstall
 
-To remove Indiwtf CLI and its configuration files, follow these steps:
+Remove the **indiwtf** binary and its configuration files (`~/.indiwtf`):
 
-1. Remove the **indiwtf** binary:
+```sh
+indiwtf uninstall
+```
+
+<details>
+<summary>Manual uninstall</summary>
 
 ```sh
 sudo rm /usr/local/bin/indiwtf
-```
-
-Remove the configuration directory and file:
-
-```sh
 rm -rf ~/.indiwtf
 ```
+
+</details>
 
 ## Features
 
