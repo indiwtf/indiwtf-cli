@@ -57,11 +57,15 @@ INSTALL_DIR="$HOME/.local/bin" sh -c "$(curl -fsSL https://github.com/indiwtf/in
 <details>
 <summary>Manual installation</summary>
 
+Download the latest binary from the [releases page](https://github.com/indiwtf/indiwtf-cli/releases/latest) and place it under `/usr/local/bin`:
+
 ```sh
 sudo wget -O /usr/local/bin/indiwtf \
-  https://github.com/indiwtf/indiwtf-cli/raw/main/indiwtf
+  https://github.com/indiwtf/indiwtf-cli/releases/latest/download/indiwtf
 sudo chmod +x /usr/local/bin/indiwtf
 ```
+
+For other platforms, replace the asset name (e.g. `indiwtf-darwin-arm64`, `indiwtf-linux-arm64`).
 
 </details>
 
