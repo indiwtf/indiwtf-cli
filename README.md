@@ -73,9 +73,15 @@ sudo wget -O /usr/local/bin/indiwtf \
 sudo chmod +x /usr/local/bin/indiwtf
 ```
 
-For other platforms, replace the asset name (e.g. `indiwtf-darwin-arm64`, `indiwtf-linux-arm64`).
+For other platforms, replace the asset name (e.g. `indiwtf-darwin-arm64`, `indiwtf-linux-arm64`, `indiwtf-windows-amd64.exe`).
 
 </details>
+
+### Windows
+
+Prebuilt Windows binaries are published on the [releases page](https://github.com/indiwtf/indiwtf-cli/releases/latest) (`indiwtf-windows-amd64.exe` and `indiwtf-windows-arm64.exe`). Download one, rename it to `indiwtf.exe`, and place it in a directory on your `PATH`.
+
+> The `install.sh` script, `indiwtf update`, and `indiwtf uninstall` are not available on Windows. Update by downloading the latest `.exe`, and uninstall by deleting the file.
 
 ## Update
 

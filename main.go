@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -147,6 +148,12 @@ func uninstall() {
 		return
 	}
 
+	// Windows cannot delete a running executable, so leave it to the user.
+	if runtime.GOOS == "windows" {
+		fmt.Printf("Configuration removed. Delete the binary manually: %s\n", binPath)
+		return
+	}
+
 	if err := os.Remove(binPath); err != nil {
 		if os.IsPermission(err) {
 			fmt.Printf("Permission denied removing %s.\n", binPath)
@@ -198,6 +205,12 @@ func latestVersion() (string, error) {
 
 // update downloads the latest released binary and replaces the running one.
 func update() {
+	if runtime.GOOS == "windows" {
+		fmt.Println("Self-update is not supported on Windows.")
+		fmt.Printf("Please download the latest indiwtf.exe from https://github.com/%s/releases/latest\n", repoSlug)
+		return
+	}
+
 	fmt.Println("Checking for the latest version...")
 	tag, err := latestVersion()
 	if err != nil {

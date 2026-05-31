@@ -34,6 +34,8 @@ jobs:
           linux/arm64:indiwtf-linux-arm64
           darwin/amd64:indiwtf-darwin-amd64
           darwin/arm64:indiwtf-darwin-arm64
+          windows/amd64:indiwtf-windows-amd64.exe
+          windows/arm64:indiwtf-windows-arm64.exe
           "
           for target in $targets; do
             os="${target%%/*}"
