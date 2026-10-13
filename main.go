@@ -306,7 +306,7 @@ func checkDomain(domain string) (*DomainStatus, error) {
 		}
 	}
 
-	apiURL := fmt.Sprintf("https://indiwtf.com/api/check?domain=%s&token=%s", url.QueryEscape(domain), token)
+	apiURL := fmt.Sprintf("https://api.indiwtf.com/v1/check?domain=%s&token=%s", url.QueryEscape(domain), token)
 
 	// Create an HTTP client with a custom User-Agent string
 	client := &http.Client{
